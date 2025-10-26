@@ -1,9 +1,27 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { Button, Text, TextInput, useTheme } from "react-native-paper";
 
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string | null>("");
+  const theme = useTheme();
+
+  const handleAuth = async () => {
+    if (!email || !password) {
+      setError("Email and Password are required.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    setError(null);
+  };
+
   const handleSwitchMode = () => {
     setIsSignUp((prev: boolean) => !prev);
   };
@@ -25,6 +43,7 @@ export default function AuthScreen() {
           placeholder="example@gmail.com"
           mode="outlined"
           style={styles.input}
+          onChangeText={setEmail}
         />
         <TextInput
           label="Password"
@@ -33,8 +52,10 @@ export default function AuthScreen() {
           placeholder="Password"
           mode="outlined"
           style={styles.input}
+          onChangeText={setPassword}
         />
-        <Button mode="contained" style={styles.button}>
+        {error && <Text style={{ color: theme.colors.error }}>{error}</Text>}
+        <Button mode="contained" style={styles.button} onPress={handleAuth}>
           {isSignUp ? "Sign Up" : "Sign In"}
         </Button>
         <Button
@@ -68,10 +89,14 @@ const styles = StyleSheet.create({
     // fontWeight: "bold",
     color: "rgba(30, 0, 51, 1)",
   },
+  text: {
+    marginBottom: 12,
+  },
   input: { marginBottom: 24 },
   button: {
     textAlign: "center",
-    marginBottom: 12,
+
+    marginVertical: 12,
   },
   switchModeButton: {},
 });
