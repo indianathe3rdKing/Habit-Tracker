@@ -1,3 +1,4 @@
+import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { Button, Text, TextInput, useTheme } from "react-native-paper";
@@ -8,6 +9,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>("");
   const theme = useTheme();
+  const { signIn, signUp } = useAuth();
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -20,6 +22,20 @@ export default function AuthScreen() {
     }
 
     setError(null);
+
+    if (isSignUp) {
+      const error = await signUp(email, password);
+      if (error) {
+        setError(error);
+        return;
+      }
+    } else {
+      const error = await signIn(email, password);
+      if (error) {
+        setError(error);
+        return;
+      }
+    }
   };
 
   const handleSwitchMode = () => {
@@ -48,7 +64,7 @@ export default function AuthScreen() {
         <TextInput
           label="Password"
           autoCapitalize="none"
-          keyboardType="email-address"
+          secureTextEntry
           placeholder="Password"
           mode="outlined"
           style={styles.input}
