@@ -1,8 +1,9 @@
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text, TextInput } from "react-native-paper";
 
 export default function StreaksScreen() {
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+    <View>
       <Text
         style={{
           fontSize: 24,
@@ -18,6 +19,7 @@ export default function StreaksScreen() {
       >
         Login Screen
       </Text>
+      <TextInput label={"Email"} mode="outlined" />
     </View>
   );
 }
