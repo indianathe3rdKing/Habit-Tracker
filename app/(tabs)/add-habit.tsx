@@ -1,9 +1,16 @@
-import { databases } from "@/lib/appwrite";
+import { DATABASE_ID, databases, HABITS_TABLE_ID } from "@/lib/appwrite";
 import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { ID } from "react-native-appwrite";
-import { Button, SegmentedButtons, TextInput } from "react-native-paper";
+import {
+  Button,
+  SegmentedButtons,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
 const frequencies = ["daily", "weekly", "monthly"];
 type Frequency = (typeof frequencies)[number];
@@ -12,18 +19,37 @@ export default function AddHabitScreen() {
   const [Title, setTitle] = useState<string>("");
   const [Description, setDescription] = useState<string>("");
   const [frequency, setFrequency] = useState<Frequency>("daily");
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const router = useRouter();
+  const theme = useTheme();
 
   const handleSubmit = async () => {
     if (!user) return;
 
-    await databases.createDocument(DATABASE_ID, HABITS_TABLE_ID, ID.unique(), {
-      user_id: user.$id,
-      Title,
-      Description,
-      Frequency: frequency,
-      Streak_count: 0,
-    });
+    try {
+      await databases.createDocument(
+        DATABASE_ID,
+        HABITS_TABLE_ID,
+        ID.unique(),
+        {
+          User_Id: user.$id,
+          Title,
+          Description,
+          Frequency: frequency,
+          Streak_Count: 0,
+          Last_Completed: new Date().toISOString(),
+        }
+      );
+
+      router.back();
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+        return;
+      }
+      setError("An unknown error occurred while adding the habit.");
+    }
   };
 
   return (
@@ -50,10 +76,12 @@ export default function AddHabitScreen() {
           }))}
         />
       </View>
+      {error && <Text style={{ color: theme.colors.error }}>{error}</Text>}
       <Button
         style={styles.button}
         disabled={!Title || !Description}
         mode="contained"
+        onPress={handleSubmit}
       >
         Add Habit
       </Button>
