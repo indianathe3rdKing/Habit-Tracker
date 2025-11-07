@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 30,
     // fontWeight: "bold",
-    color: "rgba(30, 0, 51, 1)",
+    color: "#1e0033ff",
   },
   text: {
     marginBottom: 12,
