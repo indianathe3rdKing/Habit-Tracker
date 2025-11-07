@@ -59,7 +59,7 @@ export default function Index() {
         HABITS_TABLE_ID,
         [Query.equal("User_Id", user?.$id ?? "")]
       );
-      console.log(response.documents);
+
       setHabit(response.documents.map((doc) => doc as unknown as Habit));
     } catch (error) {
       console.log("Error fetching data:", error);

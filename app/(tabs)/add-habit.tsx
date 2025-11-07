@@ -50,17 +50,22 @@ export default function AddHabitScreen() {
       }
       setError("An unknown error occurred while adding the habit.");
     }
+    setDescription("");
+    setTitle("");
+    setFrequency("daily");
   };
 
   return (
     <View style={styles.container}>
       <TextInput
+        value={Title}
         onChangeText={setTitle}
         style={styles.input}
         label={"Title"}
         mode="outlined"
       />
       <TextInput
+        value={Description}
         onChangeText={setDescription}
         style={styles.input}
         label={"Description"}
