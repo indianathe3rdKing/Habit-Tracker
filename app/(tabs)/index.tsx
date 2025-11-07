@@ -8,15 +8,17 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { Habit } from "@/types/databases.type";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Query } from "react-native-appwrite";
+import { Swipeable } from "react-native-gesture-handler";
 import { Button, Surface, Text } from "react-native-paper";
 
 export default function Index() {
   const { signOut, user } = useAuth();
-
   const [habit, setHabit] = useState<Habit[]>();
+
+  const swipeableRefs = useRef<{ [key: string]: Swipeable | null }>({});
 
   useEffect(() => {
     if (!user) return;
@@ -66,6 +68,36 @@ export default function Index() {
     }
   };
 
+  const renderLeftActions = () => {
+    return (
+      <View style={styles.swipeActionLeft}>
+        <MaterialCommunityIcons
+          name="trash-can-outline"
+          size={32}
+          color={"#fff"}
+        />
+      </View>
+    );
+  };
+  const renderRightActions = () => {
+    return (
+      <View style={styles.swipeActionRight}>
+        <MaterialCommunityIcons
+          name="check-circle-outline"
+          size={32}
+          color={"#fff"}
+        />
+      </View>
+    );
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await databases.deleteDocument(DATABASE_ID, HABITS_TABLE_ID, id);
+    } catch (error) {
+      console.log("Error deleting habit:", error);
+    }
+  };
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -85,33 +117,52 @@ export default function Index() {
           </View>
         ) : (
           habit?.map((habit, key) => (
-            <Surface key={key} style={styles.card}>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle} variant="headlineSmall">
-                  {habit.Title}
-                </Text>
-                <Text style={styles.cardDescription}>{habit.Description}</Text>
-                <View style={styles.cardFooter}>
-                  <View style={styles.streakBadge}>
-                    <MaterialCommunityIcons
-                      name="fire"
-                      size={18}
-                      color={"#ff9800"}
-                    />
-                    <Text style={styles.streakText}>
-                      {habit.Streak_Count} Days Streak
-                    </Text>
-                  </View>
+            <Swipeable
+              ref={(ref) => {
+                swipeableRefs.current[habit.$id] = ref;
+              }}
+              key={key}
+              overshootLeft={false}
+              overshootRight={false}
+              renderLeftActions={renderLeftActions}
+              renderRightActions={renderRightActions}
+              onSwipeableOpen={(direction) => {
+                if (direction === "left") {
+                  handleDelete(habit.$id);
+                }
+                swipeableRefs.current[habit.$id]?.close();
+              }}
+            >
+              <Surface style={styles.card}>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle} variant="headlineSmall">
+                    {habit.Title}
+                  </Text>
+                  <Text style={styles.cardDescription}>
+                    {habit.Description}
+                  </Text>
+                  <View style={styles.cardFooter}>
+                    <View style={styles.streakBadge}>
+                      <MaterialCommunityIcons
+                        name="fire"
+                        size={18}
+                        color={"#ff9800"}
+                      />
+                      <Text style={styles.streakText}>
+                        {habit.Streak_Count} Days Streak
+                      </Text>
+                    </View>
 
-                  <View style={styles.frequencyBadge}>
-                    <Text style={styles.frequencyText}>
-                      {habit.Frequency.charAt(0).toUpperCase() +
-                        habit.Frequency.slice(1)}
-                    </Text>
+                    <View style={styles.frequencyBadge}>
+                      <Text style={styles.frequencyText}>
+                        {habit.Frequency.charAt(0).toUpperCase() +
+                          habit.Frequency.slice(1)}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </Surface>
+              </Surface>
+            </Swipeable>
           ))
         )}
       </ScrollView>
@@ -196,5 +247,26 @@ const styles = StyleSheet.create({
     color: "#7c4dff",
     fontWeight: "bold",
     fontSize: 14,
+  },
+  swipeActionLeft: {
+    justifyContent: "center",
+    alignItems: "flex-start",
+    backgroundColor: "#e53935",
+    flex: 1,
+    borderRadius: 18,
+    marginTop: 2,
+    marginBottom: 18,
+    paddingLeft: 26,
+  },
+  swipeActionRight: {
+    justifyContent: "center",
+    alignItems: "flex-end",
+    backgroundColor: "#4caf50",
+    color: "#fff",
+    flex: 1,
+    borderRadius: 18,
+    marginTop: 2,
+    marginBottom: 18,
+    paddingRight: 26,
   },
 });

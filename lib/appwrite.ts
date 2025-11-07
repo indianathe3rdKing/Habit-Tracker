@@ -12,6 +12,8 @@ export const DATABASE_ID = process.env.EXPO_PUBLIC_DB_ID!;
 
 export const HABITS_TABLE_ID = process.env.EXPO_PUBLIC_DB_TABLE_ID!;
 
+export const COMPLETION_TABLE_ID = process.env.EXPO_PUBLIC_COMPLETION_TABLE_ID!;
+
 export interface RealtimeResponse {
   events: string[];
   payload: any;
