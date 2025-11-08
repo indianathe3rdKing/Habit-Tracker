@@ -106,8 +106,6 @@ export default function StreaksScreen() {
     (a, b) => a.bestStreak - b.bestStreak
   );
 
-  console.log(rankedHabits?.map((h) => h.habit.Title));
-
   return (
     <View>
       <Text>Habit Streaks</Text>

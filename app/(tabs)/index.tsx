@@ -129,12 +129,9 @@ export default function Index() {
         }
       );
 
-      // const doc = await databases.getDocument(DATABASE_ID,COMPLETION_TABLE_ID,doc.$id)
-
       const habit = habits?.find((h) => h.$id === id);
       if (!habit) return;
 
-      console.log("ID", doc.$id);
       const updateDoc = await databases.updateDocument(
         DATABASE_ID,
         HABITS_TABLE_ID,
