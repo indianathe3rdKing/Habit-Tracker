@@ -46,7 +46,7 @@ export default function Index() {
       }
     );
 
-    const completionChannel = `databases.${DATABASE_ID}.collections.${HABITS_TABLE_ID}.documents`;
+    const completionChannel = `databases.${DATABASE_ID}.collections.${COMPLETION_TABLE_ID}.documents`;
     const habitCompletionSubscription = client.subscribe(
       completionChannel,
       (response: RealtimeResponse) => {
@@ -141,6 +141,8 @@ export default function Index() {
     }
   };
 
+  const isCompleted = (habitId: string) => habitCompletion?.includes(habitId);
+
   const renderLeftActions = () => {
     return (
       <View style={styles.swipeActionLeft}>
@@ -152,14 +154,20 @@ export default function Index() {
       </View>
     );
   };
-  const renderRightActions = () => {
+  const renderRightActions = (habitId: string) => {
+    console.log(isCompleted(habitId));
+    console.log(habitId);
     return (
       <View style={styles.swipeActionRight}>
-        <MaterialCommunityIcons
-          name="check-circle-outline"
-          size={32}
-          color={"#fff"}
-        />
+        {isCompleted(habitId) ? (
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>Completed!</Text>
+        ) : (
+          <MaterialCommunityIcons
+            name="check-circle-outline"
+            size={32}
+            color={"#fff"}
+          />
+        )}
       </View>
     );
   };
@@ -190,7 +198,7 @@ export default function Index() {
               overshootLeft={false}
               overshootRight={false}
               renderLeftActions={renderLeftActions}
-              renderRightActions={renderRightActions}
+              renderRightActions={() => renderRightActions(habit.$id)}
               onSwipeableOpen={(direction) => {
                 if (direction === "left") {
                   handleDelete(habit.$id);
@@ -200,7 +208,12 @@ export default function Index() {
                 swipeableRefs.current[habit.$id]?.close();
               }}
             >
-              <Surface style={styles.card}>
+              <Surface
+                style={[
+                  styles.card,
+                  isCompleted(habit.$id) && styles.cardCompleted,
+                ]}
+              >
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle} variant="headlineSmall">
                     {habit.Title}
@@ -335,5 +348,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 18,
     paddingRight: 26,
+  },
+  cardCompleted: {
+    opacity: 0.5,
+    borderColor: "#222",
   },
 });
