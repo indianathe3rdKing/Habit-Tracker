@@ -160,8 +160,6 @@ export default function Index() {
     );
   };
   const renderRightActions = (habitId: string) => {
-    console.log(isCompleted(habitId));
-    console.log(habitId);
     return (
       <View style={styles.swipeActionRight}>
         {isCompleted(habitId) ? (
