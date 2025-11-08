@@ -1,56 +1,71 @@
 import {
   client,
+  COMPLETION_TABLE_ID,
   DATABASE_ID,
   databases,
   HABITS_TABLE_ID,
   RealtimeResponse,
 } from "@/lib/appwrite";
 import { useAuth } from "@/lib/auth-context";
-import { Habit } from "@/types/databases.type";
+import { Habit, HabitCompletion } from "@/types/databases.type";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Query } from "react-native-appwrite";
+import { ID, Query } from "react-native-appwrite";
 import { Swipeable } from "react-native-gesture-handler";
 import { Button, Surface, Text } from "react-native-paper";
 
 export default function Index() {
   const { signOut, user } = useAuth();
-  const [habit, setHabit] = useState<Habit[]>();
+  const [habits, setHabit] = useState<Habit[]>();
+  const [habitCompletion, setHabitCompletion] = useState<string[]>();
 
   const swipeableRefs = useRef<{ [key: string]: Swipeable | null }>({});
 
   useEffect(() => {
     if (!user) return;
     fetchData();
-    const channel = `databases.${DATABASE_ID}.collections.${HABITS_TABLE_ID}.documents`;
+
+    const habitChannel = `databases.${DATABASE_ID}.collections.${HABITS_TABLE_ID}.documents`;
     const habitsSubscription = client.subscribe(
-      channel,
+      habitChannel,
       (response: RealtimeResponse) => {
-        if (
-          response.events.includes(
-            "databases.*.collections.*.documents.*.create"
-          )
-        ) {
-          fetchData();
-        } else if (
-          response.events.includes(
-            "databases.*.collections.*.documents.*.updated"
-          )
-        ) {
-          fetchData();
-        } else if (
-          response.events.includes(
-            "databases.*.collections.*.documents.*.delete"
-          )
-        ) {
+        const isCreate = response.events.some((event) =>
+          event.includes("create")
+        );
+        const isUpdate = response.events.some((event) =>
+          event.includes("update")
+        );
+        const isDelete = response.events.some((event) =>
+          event.includes("delete")
+        );
+
+        if (isCreate || isUpdate || isDelete) {
           fetchData();
         }
       }
     );
 
+    const completionChannel = `databases.${DATABASE_ID}.collections.${HABITS_TABLE_ID}.documents`;
+    const habitCompletionSubscription = client.subscribe(
+      completionChannel,
+      (response: RealtimeResponse) => {
+        const isCreate = response.events.some((event) =>
+          event.includes("create")
+        );
+
+        if (isCreate) {
+          fetchCompletionData();
+        }
+      }
+    );
+
+    fetchData();
+    fetchCompletionData();
+
     return () => {
       habitsSubscription();
+      habitCompletionSubscription();
     };
   }, [user]);
 
@@ -65,6 +80,64 @@ export default function Index() {
       setHabit(response.documents.map((doc) => doc as unknown as Habit));
     } catch (error) {
       console.log("Error fetching data:", error);
+    }
+  };
+
+  const fetchCompletionData = async () => {
+    try {
+      const response = await databases.listDocuments<HabitCompletion>(
+        DATABASE_ID,
+        COMPLETION_TABLE_ID,
+        [Query.equal("user_id", user?.$id ?? "")]
+      );
+
+      setHabitCompletion(response.documents.map((doc) => doc.habit_id));
+    } catch (error) {
+      console.log("Error fetching data:", error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await databases.deleteDocument(DATABASE_ID, HABITS_TABLE_ID, id);
+    } catch (error) {
+      console.log("Error deleting habit:", error);
+    }
+  };
+
+  const handleCompletion = async (id: string) => {
+    if (!user || habitCompletion?.includes(id)) return;
+    const currentDate = new Date().toISOString();
+    try {
+      const doc = await databases.createDocument(
+        DATABASE_ID,
+        COMPLETION_TABLE_ID,
+        ID.unique(),
+
+        {
+          habit_id: id,
+          user_id: user.$id,
+          completed_at: currentDate,
+        }
+      );
+
+      // const doc = await databases.getDocument(DATABASE_ID,COMPLETION_TABLE_ID,doc.$id)
+
+      const habit = habits?.find((h) => h.$id === id);
+      if (!habit) return;
+
+      console.log("ID", doc.$id);
+      const updateDoc = await databases.updateDocument(
+        DATABASE_ID,
+        HABITS_TABLE_ID,
+        id,
+        {
+          Streak_Count: habit.Streak_Count + 1,
+          Last_Completed: currentDate,
+        }
+      );
+    } catch (error) {
+      console.log("Error completing habit:", error);
     }
   };
 
@@ -90,14 +163,6 @@ export default function Index() {
       </View>
     );
   };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await databases.deleteDocument(DATABASE_ID, HABITS_TABLE_ID, id);
-    } catch (error) {
-      console.log("Error deleting habit:", error);
-    }
-  };
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -109,14 +174,14 @@ export default function Index() {
         </Button>
       </View>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {habit?.length === 0 ? (
+        {habits?.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               No Habits yet.Add your first Habit
             </Text>
           </View>
         ) : (
-          habit?.map((habit, key) => (
+          habits?.map((habit, key) => (
             <Swipeable
               ref={(ref) => {
                 swipeableRefs.current[habit.$id] = ref;
@@ -129,6 +194,8 @@ export default function Index() {
               onSwipeableOpen={(direction) => {
                 if (direction === "left") {
                   handleDelete(habit.$id);
+                } else if (direction === "right") {
+                  handleCompletion(habit.$id);
                 }
                 swipeableRefs.current[habit.$id]?.close();
               }}
