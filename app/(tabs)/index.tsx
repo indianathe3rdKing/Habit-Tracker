@@ -55,13 +55,13 @@ export default function Index() {
         );
 
         if (isCreate) {
-          fetchCompletionData();
+          fetchTodayCompletionData();
         }
       }
     );
 
     fetchData();
-    fetchCompletionData();
+    fetchTodayCompletionData();
 
     return () => {
       habitsSubscription();
@@ -83,12 +83,20 @@ export default function Index() {
     }
   };
 
-  const fetchCompletionData = async () => {
+  const fetchTodayCompletionData = async () => {
     try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
       const response = await databases.listDocuments<HabitCompletion>(
         DATABASE_ID,
         COMPLETION_TABLE_ID,
-        [Query.equal("user_id", user?.$id ?? "")]
+        [
+          Query.equal("user_id", user?.$id ?? ""),
+          Query.greaterThanEqual("completed_at", today.toISOString()),
+          Query.lessThanEqual("completed_at", endOfDay.toISOString()),
+        ]
       );
 
       setHabitCompletion(response.documents.map((doc) => doc.habit_id));
